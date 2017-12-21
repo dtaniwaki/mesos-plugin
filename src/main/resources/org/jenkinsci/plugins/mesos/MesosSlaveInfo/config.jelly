@@ -34,6 +34,10 @@
         <f:textbox clazz="required" default="0.1"/>
     </f:entry>
 
+    <f:entry title="${%Jenkins Executor GPUs}" field="executorGpus">
+        <f:number clazz="required number" default="0"/>
+    </f:entry>
+
     <f:entry title="${%Jenkins Executor Memory in MB}" field="executorMem">
         <f:number clazz="required positive-number" default="128"/>
     </f:entry>

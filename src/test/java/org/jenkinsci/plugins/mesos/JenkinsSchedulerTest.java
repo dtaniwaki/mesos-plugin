@@ -429,6 +429,7 @@ public class JenkinsSchedulerTest {
                 "1",                // minExecutors,
                 "2",                // maxExecutors,
                 "0.2",              // executorCpus,
+                "1",                // executorGpus,
                 "500",               // diskNeeded
                 "512",              // executorMem,
                 "remoteFSRoot",     // remoteFSRoot,
@@ -442,7 +443,7 @@ public class JenkinsSchedulerTest {
                 null              // nodeProperties
                 );
         return new Mesos.SlaveRequest(
-            new Mesos.JenkinsSlave(TEST_JENKINS_SLAVE_NAME), 0.2d, TEST_JENKINS_SLAVE_MEM, "jenkins", mesosSlaveInfo, 500);
+            new Mesos.JenkinsSlave(TEST_JENKINS_SLAVE_NAME), 0.2d, 0, TEST_JENKINS_SLAVE_MEM, "jenkins", mesosSlaveInfo, 500);
     }
 
     private JenkinsScheduler.Request mockMesosRequest(
@@ -518,15 +519,17 @@ public class JenkinsSchedulerTest {
         return createScalarResource("cpus", value);
     }
 
+    private Protos.Resource createGpuResource(double value) { return createScalarResource("gpus", value); }
+
     private Protos.Resource createMemResource(double value) {
         return createScalarResource("mem", value);
     }
 
     private Protos.Offer createOfferWithUnavailability(Date startDate, Date endDate) {
-        return createOfferWithUnavailability(startDate, endDate, 2.0, 1000.0);
+        return createOfferWithUnavailability(startDate, endDate, 2.0, 2, 1000.0);
     }
 
-    private Protos.Offer createOfferWithUnavailability(Date startDate, Date endDate, double valueCpus, double valueMem) {
+    private Protos.Offer createOfferWithUnavailability(Date startDate, Date endDate, double valueCpus, int valueGpus, double valueMem) {
 
         long startNanos = TimeUnit.MILLISECONDS.toNanos(startDate.getTime());
         long durationNanos = TimeUnit.MILLISECONDS.toNanos(endDate.getTime() - startDate.getTime());
@@ -539,6 +542,7 @@ public class JenkinsSchedulerTest {
         Protos.Offer offer = createOfferWithVariableRanges(31000, 32000);
         return Protos.Offer.newBuilder(offer)
                 .addResources(createCpuResource(valueCpus))
+                .addResources(createGpuResource(valueGpus))
                 .addResources(createMemResource(valueMem))
                 .setUnavailability(unavailability).build();
     }

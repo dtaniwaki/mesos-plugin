@@ -338,6 +338,7 @@ public class JenkinsScheduler implements Scheduler {
 
       if (isOfferAvailable(offer)) {
         for (Request request : requests) {
+          LOGGER.fine("Compare request: " + request.request.toString());
           if (matches(offer, request)) {
             LOGGER.fine("Offer matched! Creating mesos task " + request.request.slave.name);
             try {
@@ -446,6 +447,7 @@ public class JenkinsScheduler implements Scheduler {
 
   private boolean matches(Offer offer, Request request) {
     double cpus = -1;
+    int gpus = -1;
     double mem = -1;
     List<Range> ports = null;
 
@@ -462,6 +464,12 @@ public class JenkinsScheduler implements Scheduler {
           cpus = resource.getScalar().getValue();
         } else {
           LOGGER.severe("Cpus resource was not a scalar: " + resource.getType().toString());
+        }
+      } else if (resource.getName().equals("gpus")) {
+        if (resource.getType().equals(Value.Type.SCALAR)) {
+          gpus = (int)resource.getScalar().getValue();
+        } else {
+          LOGGER.severe("Gpus resource was not a scalar: " + resource.getType().toString());
         }
       } else if (resource.getName().equals("mem")) {
         if (resource.getType().equals(Value.Type.SCALAR)) {
@@ -483,6 +491,7 @@ public class JenkinsScheduler implements Scheduler {
     }
 
     if (cpus < 0) LOGGER.fine("No cpus resource present");
+    if (gpus < 0) LOGGER.fine("No gpus resource present");
     if (mem < 0)  LOGGER.fine("No mem resource present");
 
     MesosSlaveInfo.ContainerInfo containerInfo = request.request.slaveInfo.getContainerInfo();
@@ -497,11 +506,13 @@ public class JenkinsScheduler implements Scheduler {
 
     // Check for sufficient cpu and memory resources in the offer.
     double requestedCpus = request.request.cpus;
+    int requestedGpus = request.request.gpus;
     double requestedMem = (1 + JVM_MEM_OVERHEAD_FACTOR) * request.request.mem;
     // Get matching slave attribute for this label.
     JSONObject slaveAttributes = getMesosCloud().getSlaveAttributeForLabel(request.request.slaveInfo.getLabelString());
 
     if (requestedCpus <= cpus
+            && requestedGpus <= gpus
             && requestedMem <= mem
             && !(hasPortMappings && !hasPortResources)
             && slaveAttributesMatch(offer, slaveAttributes)) {
@@ -517,6 +528,7 @@ public class JenkinsScheduler implements Scheduler {
           "\n" + offer.getAttributesList().toString() +
           "\nRequested for Jenkins slave:\n" +
           "  cpus:  " + requestedCpus + "\n" +
+          "  gpus:  " + requestedGpus + "\n" +
           "  mem:   " + requestedMem + "\n" +
           "  ports: " + requestedPorts + "\n" +
           "  attributes:  " + (slaveAttributes == null ? ""  : slaveAttributes.toString()));
@@ -700,6 +712,7 @@ public class JenkinsScheduler implements Scheduler {
         .setCommand(commandBuilder.build());
 
     double cpusNeeded = request.request.cpus;
+    int gpusNeeded = request.request.gpus;
     double memNeeded = (1 + JVM_MEM_OVERHEAD_FACTOR) * request.request.mem;
     double diskNeeded = request.request.diskNeeded;
 
@@ -707,15 +720,26 @@ public class JenkinsScheduler implements Scheduler {
       if (r.getName().equals("cpus") && cpusNeeded > 0) {
         double cpus = Math.min(r.getScalar().getValue(), cpusNeeded);
         builder.addResources(
-            Resource
-                .newBuilder()
-                .setName("cpus")
-                .setType(Value.Type.SCALAR)
-                .setRole(r.getRole())
-                .setScalar(
-                    Value.Scalar.newBuilder()
-                        .setValue(cpus).build()).build());
+                Resource
+                        .newBuilder()
+                        .setName("cpus")
+                        .setType(Value.Type.SCALAR)
+                        .setRole(r.getRole())
+                        .setScalar(
+                                Value.Scalar.newBuilder()
+                                        .setValue(cpus).build()).build());
         cpusNeeded -= cpus;
+      } else if (r.getName().equals("gpus") && gpusNeeded > 0) {
+        int gpus = (int)Math.min(r.getScalar().getValue(), gpusNeeded);
+        builder.addResources(
+                Resource
+                        .newBuilder()
+                        .setName("gpus")
+                        .setType(Value.Type.SCALAR)
+                        .setRole(r.getRole())
+                        .setScalar(
+                                Value.Scalar.newBuilder()
+                                        .setValue(gpus).build()).build());
       } else if (r.getName().equals("mem") && memNeeded > 0) {
         double mem = Math.min(r.getScalar().getValue(), memNeeded);
         builder.addResources(
@@ -741,7 +765,7 @@ public class JenkinsScheduler implements Scheduler {
                         .setValue(disk).build()).build());
 
       }
-      else if (cpusNeeded == 0 && memNeeded == 0 && diskNeeded == 0) {
+      else if (cpusNeeded == 0 && gpusNeeded == 0 && memNeeded == 0 && diskNeeded == 0) {
         break;
       }
     }

@@ -82,6 +82,7 @@ public class MesosSlaveInfo extends AbstractDescribableImpl<MesosSlaveInfo> {
   private final double diskNeeded; //MB
   private final int slaveMem; // MB.
   private final double executorCpus;
+  private final int executorGpus;
   private /*almost final*/ int minExecutors;
   private final int maxExecutors;
   private final int executorMem; // MB.
@@ -113,6 +114,7 @@ public class MesosSlaveInfo extends AbstractDescribableImpl<MesosSlaveInfo> {
     if (Double.compare(that.slaveCpus, slaveCpus) != 0) return false;
     if (slaveMem != that.slaveMem) return false;
     if (Double.compare(that.executorCpus, executorCpus) != 0) return false;
+    if (Double.compare(that.executorGpus, executorGpus) != 0) return false;
     if (Double.compare(that.diskNeeded, diskNeeded) !=0 ) return false;
     if (minExecutors != that.minExecutors) return false;
     if (maxExecutors != that.maxExecutors) return false;
@@ -141,6 +143,8 @@ public class MesosSlaveInfo extends AbstractDescribableImpl<MesosSlaveInfo> {
     result = 31 * result + slaveMem;
     temp = Double.doubleToLongBits(executorCpus);
     result = 31 * result + (int) (temp ^ (temp >>> 32));
+    temp = Double.doubleToLongBits(executorGpus);
+    result = 31 * result + (int) (temp ^ (temp >>> 32));
     temp = Double.doubleToLongBits(diskNeeded);
     result = 31 * result + (int) (temp ^ (temp >>> 32));
     result = 31 * result + minExecutors;
@@ -168,6 +172,7 @@ public class MesosSlaveInfo extends AbstractDescribableImpl<MesosSlaveInfo> {
       String minExecutors,
       String maxExecutors,
       String executorCpus,
+      String executorGpus,
       String diskNeeded,
       String executorMem,
       String remoteFSRoot,
@@ -189,6 +194,7 @@ public class MesosSlaveInfo extends AbstractDescribableImpl<MesosSlaveInfo> {
               Integer.parseInt(minExecutors),
               Integer.parseInt(maxExecutors),
               Double.parseDouble(executorCpus),
+              Integer.parseInt(executorGpus),
               Double.parseDouble(diskNeeded),
               Integer.parseInt(executorMem),
               StringUtils.isNotBlank(remoteFSRoot) ? remoteFSRoot.trim() : "jenkins",
@@ -210,6 +216,7 @@ public class MesosSlaveInfo extends AbstractDescribableImpl<MesosSlaveInfo> {
       int minExecutors,
       int maxExecutors,
       double executorCpus,
+      int executorGpus,
       double diskNeeded,
       int executorMem,
       String remoteFSRoot,
@@ -229,6 +236,7 @@ public class MesosSlaveInfo extends AbstractDescribableImpl<MesosSlaveInfo> {
       this.minExecutors = minExecutors < 1 ? 1 : minExecutors; // Ensure minExecutors is at least equal to 1
       this.maxExecutors = maxExecutors;
       this.executorCpus = executorCpus;
+      this.executorGpus = executorGpus;
       this.diskNeeded = diskNeeded;
       this.executorMem = executorMem;
       this.remoteFSRoot = remoteFSRoot;
@@ -270,6 +278,7 @@ public class MesosSlaveInfo extends AbstractDescribableImpl<MesosSlaveInfo> {
               minExecutors,
               maxExecutors,
               executorCpus,
+              executorGpus,
               diskNeeded,
               executorMem,
               remoteFSRoot,
@@ -303,6 +312,8 @@ public class MesosSlaveInfo extends AbstractDescribableImpl<MesosSlaveInfo> {
   public double getExecutorCpus() {
     return executorCpus;
   }
+
+  public int getExecutorGpus() { return executorGpus; }
 
   public double getSlaveCpus() {
     return slaveCpus;

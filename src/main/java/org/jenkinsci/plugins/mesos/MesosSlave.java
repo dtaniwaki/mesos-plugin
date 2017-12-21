@@ -38,6 +38,7 @@ public class MesosSlave extends Slave {
   private final MesosSlaveInfo slaveInfo;
   private final int idleTerminationMinutes;
   private final double cpus;
+  private final int gpus;
   private final int mem;
   private final double diskNeeded;
 
@@ -62,6 +63,7 @@ public class MesosSlave extends Slave {
     this.slaveInfo = slaveInfo;
     this.idleTerminationMinutes = slaveInfo.getIdleTerminationMinutes();
     this.cpus = slaveInfo.getSlaveCpus() + (numExecutors * slaveInfo.getExecutorCpus());
+    this.gpus = numExecutors * slaveInfo.getExecutorGpus();
     this.mem = slaveInfo.getSlaveMem() + (numExecutors * slaveInfo.getExecutorMem());
     this.diskNeeded = slaveInfo.getdiskNeeded();
     LOGGER.fine("Constructing Mesos slave " + name + " from cloud " + cloud.getDescription());
@@ -84,6 +86,10 @@ public class MesosSlave extends Slave {
 
   public double getCpus() {
     return cpus;
+  }
+
+  public int getGpus() {
+    return gpus;
   }
 
   public int getMem() {
